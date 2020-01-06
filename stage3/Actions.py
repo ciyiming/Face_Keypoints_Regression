@@ -151,10 +151,10 @@ def test(data_loader, device, criterion_pts, model):
             # ground truth
             input_img = img.to(device)
             target_pts = landmark.to(device).float()
-            output_pts, output_pts = model(input_img)
+            output_cls, output_pts = model(input_img)
             loss = criterion_pts(output_pts, target_pts)
             total_loss += loss.item() * input_img.size(0)
-            if cls == output_pts:
+            if cls == torch.max(output_cls, 1)[1]:
                 corr_count += 1
     avg_acc = corr_count / len(data_loader.dataset)
     avg_loss = total_loss / len(data_loader.dataset)
@@ -194,8 +194,9 @@ def predict(img_dir_name, model, device):
     # forward propagation
     with torch.no_grad():
         output_cls, output_pts = model(sample['image'].to(device).reshape(-1, 1, 112, 112))
-        plt.title('Predicted as {} example. '.format('Positive' if output_cls else 'Negative'))
-        if output_cls:
+        plt.title('Predicted as {} example. '.
+                  format('Positive' if torch.max(output_cls, 1)[1] else 'Negative'))
+        if torch.max(output_cls, 1)[1]:
             output_pts = output_pts.reshape(-1, 2).tolist()
             x, y = [l[0] for l in output_pts], [l[1] for l in output_pts]
             plt.scatter(x, y, c='r')
